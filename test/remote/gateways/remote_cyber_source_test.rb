@@ -165,4 +165,10 @@ class RemoteCyberSourceTest < Test::Unit::TestCase
     assert_success response
     assert response.test?       
   end
+
+  def test_subscription_check
+    assert response = @gateway.check_subscription(@subscription_id, @options)
+    assert_equal 'Successful transaction', response.message
+    assert_success response
+  end
 end

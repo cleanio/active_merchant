@@ -170,6 +170,11 @@ module ActiveMerchant #:nodoc:
         setup_address_hash(options)
         commit(build_tax_calculation_request(creditcard, options), options)	  
       end
+
+      def check_subscription(subscription_id, options = {})
+        commit(build_sub_status_request(subscription_id, options), options)
+
+      end
       
       private                       
       # Create all address hash key value pairs so that we still function if we were only provided with one or two of them 
@@ -177,7 +182,8 @@ module ActiveMerchant #:nodoc:
         options[:billing_address] = options[:billing_address] || options[:address] || {}
         options[:shipping_address] = options[:shipping_address] || {}
       end
-      
+
+
       def build_auth_request(money, creditcard, options)
         xml = Builder::XmlMarkup.new :indent => 2
         add_address(xml, creditcard, options[:billing_address], options)
@@ -219,7 +225,14 @@ module ActiveMerchant #:nodoc:
         add_business_rules_data(xml)
         xml.target!
       end
-      
+
+      def build_sub_status_request(subscription_id, options)
+        xml = Builder::XmlMarkup.new :indent => 2
+        add_subscription_check_service(xml, subscription_id,)
+        add_business_rules_data(xml)
+        xml.target!
+      end
+
       def build_void_request(identification, options)
         order_id, request_id, request_token = identification.split(";")
         options[:order_id] = order_id
@@ -348,6 +361,13 @@ module ActiveMerchant #:nodoc:
         xml.tag! 'ccCreditService', {'run' => 'true'} do
           xml.tag! 'captureRequestID', request_id
           xml.tag! 'captureRequestToken', request_token
+        end
+      end
+
+      def add_subscription_check_service(xml, subscription_id)
+        xml.tag! 'paySubscriptionRetrieveService', {'run' => 'true'} do
+          xml.tag! 'recurringSubscriptionInfo', {'subscriptionID' => subscription_id}
+
         end
       end
 
