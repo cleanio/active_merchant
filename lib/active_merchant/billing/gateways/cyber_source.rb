@@ -159,6 +159,13 @@ module ActiveMerchant #:nodoc:
         setup_address_hash(options)
         commit(build_update_subscription_request(identification, options), options)
       end
+
+      def get_subscription_status(identification, options={})
+        setup_address_hash(options)
+        commit(build_check_subscription_request(identification, options), options)
+
+      end
+
       
       # CyberSource requires that you provide line item information for tax calculations
       # If you do not have prices for each item or want to simplify the situation then pass in one fake line item that costs the subtotal of the order
@@ -266,6 +273,15 @@ module ActiveMerchant #:nodoc:
         add_credit_service(xml, request_id, request_token)
         
         xml.target!
+      end
+
+      def build_check_subscription_request(identification, options)
+        reference_code, subscription_id, request_token = identification.split(";")
+        xml = Builder::XmlMarkup.new :indent => 2
+        add_subscription(xml, options)
+        add_subscription_check_service(xml, subscription_id)
+        add_business_rules_data(xml)
+
       end
       
       def build_create_subscription_request(payment_source, options)
@@ -459,6 +475,12 @@ module ActiveMerchant #:nodoc:
         xml.tag! 'ccCreditService', {'run' => 'true'} do
           xml.tag! 'captureRequestID', request_id
           xml.tag! 'captureRequestToken', request_token
+        end
+      end
+
+      def add_subscription_check_service(xml,subscription_id)
+        xml.tag! 'paySubscriptionRetrieveService', {'run' => 'true'} do
+          xml.tag! 'recurringSubscriptionInfo', subscription_id
         end
       end
 
