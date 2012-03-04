@@ -278,9 +278,7 @@ module ActiveMerchant #:nodoc:
       def build_check_subscription_request(subscription_id, options)
 
         xml = Builder::XmlMarkup.new :indent => 2
-        add_subscription(xml, options)
         add_subscription_check_service(xml, subscription_id)
-        add_business_rules_data(xml)
 
       end
       
