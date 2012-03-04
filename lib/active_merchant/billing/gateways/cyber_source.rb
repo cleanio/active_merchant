@@ -161,7 +161,6 @@ module ActiveMerchant #:nodoc:
       end
 
       def get_subscription_status(subscription_id, options={})
-        requires!(options, :order_id)
         commit(build_check_subscription_request(subscription_id, options), options)
 
       end
@@ -476,9 +475,10 @@ module ActiveMerchant #:nodoc:
         end
       end
 
+
       def add_subscription_check_service(xml,subscription_id)
         xml.tag! 'paySubscriptionRetrieveService', {'run' => 'true'} do
-          xml.tag! 'recurringSubscriptionInfo', subscription_id
+          xml.tag! 'recurringSubscriptionInfo', { 'subscriptionID' => subscription_id }
         end
       end
 
