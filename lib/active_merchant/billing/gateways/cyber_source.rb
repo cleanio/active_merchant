@@ -160,9 +160,10 @@ module ActiveMerchant #:nodoc:
         commit(build_update_subscription_request(identification, options), options)
       end
 
-      def get_subscription_status(identification, options={})
-        setup_address_hash(options)
-        commit(build_check_subscription_request(identification, options), options)
+      def get_subscription_status(options={})
+        requires!(options, :subscription_id)
+        requires!(options, :date)
+        commit(build_check_subscription_request(options), options)
 
       end
 
@@ -275,11 +276,11 @@ module ActiveMerchant #:nodoc:
         xml.target!
       end
 
-      def build_check_subscription_request(identification, options)
-        reference_code, subscription_id, request_token = identification.split(";")
+      def build_check_subscription_request(options)
+
         xml = Builder::XmlMarkup.new :indent => 2
         add_subscription(xml, options)
-        add_subscription_check_service(xml, subscription_id)
+        add_subscription_check_service(xml, options[:subscription_id])
         add_business_rules_data(xml)
 
       end
