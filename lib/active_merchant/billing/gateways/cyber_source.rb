@@ -15,7 +15,7 @@ module ActiveMerchant #:nodoc:
     # * productCode is a value in the line_items hash that is used to tell CyberSource what kind of item you are selling.  It is used when calculating tax/VAT.
     # * All transactions use dollar values.
     class CyberSourceGateway < Gateway
-      TEST_URL = 'https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor'
+      TEST_URL = 'https://ics2wstest.ic3.com/commerce/1.x/transactionProcessor/CyberSourceTransaction_1.65.wsdl'
       LIVE_URL = 'https://ics2ws.ic3.com/commerce/1.x/transactionProcessor'
           
       # visa, master, american_express, discover
@@ -160,7 +160,8 @@ module ActiveMerchant #:nodoc:
         commit(build_update_subscription_request(identification, options), options)
       end
 
-      def get_subscription_status(subscription_id, options={})
+      def get_subscription_data(subscription_id, options={})
+        requires!(options, :order_id)
         commit(build_check_subscription_request(subscription_id, options), options)
 
       end
@@ -275,7 +276,6 @@ module ActiveMerchant #:nodoc:
       end
 
       def build_check_subscription_request(subscription_id, options)
-
         xml = Builder::XmlMarkup.new :indent => 2
         add_subscription_check_service(xml, subscription_id)
 
@@ -477,9 +477,10 @@ module ActiveMerchant #:nodoc:
 
 
       def add_subscription_check_service(xml,subscription_id)
-        xml.tag! 'paySubscriptionRetrieveService', {'run' => 'true'} do
-          xml.tag! 'recurringSubscriptionInfo', { 'subscriptionID' => subscription_id }
+        xml.tag! 'recurringSubscriptionInfo' do
+          xml.tag! 'subscriptionID', subscription_id
         end
+        xml.tag! 'paySubscriptionRetrieveService', {'run' => 'true'}
       end
 
       
@@ -487,7 +488,7 @@ module ActiveMerchant #:nodoc:
         add_cc_purchase_service(xml, options) if options[:setup_fee]
         xml.tag! 'paySubscriptionCreateService', {'run' => 'true'}
       end
-      
+
       def add_subscription_update_service(xml, options)
         add_cc_purchase_service(xml, options) if options[:setup_fee]
         xml.tag! 'paySubscriptionUpdateService', {'run' => 'true'}
@@ -514,7 +515,8 @@ module ActiveMerchant #:nodoc:
           xml.tag! 'billPayment',       options[:subscription][:bill_payment]                   if options[:subscription][:bill_payment]
         end
       end
-      
+
+
       # Where we actually build the full SOAP request using builder
       def build_request(body, options)
         xml = Builder::XmlMarkup.new :indent => 2
@@ -540,13 +542,16 @@ module ActiveMerchant #:nodoc:
       
       # Contact CyberSource, make the SOAP request, and parse the reply into a Response object
       def commit(request, options)
-	      response = parse(ssl_post(test? ? TEST_URL : LIVE_URL, build_request(request, options)))
+        request_xml = build_request(request, options)
+        #raise request_xml
+        #raise raw_ssl_request(:post, TEST_URL, request_xml).inspect
+	      response = parse(ssl_post(test? ? TEST_URL : LIVE_URL, request_xml))
 	      success = response[:decision] == "ACCEPT"
 	      message = @@response_codes[('r' + response[:reasonCode]).to_sym] rescue response[:message] 
         authorization = success ? [ options[:order_id], response[:requestID], response[:requestToken] ].compact.join(";") : nil
         
-        Response.new(success, message, response, 
-          :test => test?, 
+        Response.new(success, message, response,
+          :test => test?,
           :authorization => authorization,
           :avs_result => { :code => response[:avsCode] },
           :cvv_result => response[:cvCode]
